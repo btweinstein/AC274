@@ -16,21 +16,21 @@ cdef class one_d_adr(object):
         public int jmax
         public double dt
         public double dx
-        public double v
+        public double[:] v
         public double D
         public double s
 
+        public double[:] fi_orig
+
         double[:] xgrid
         double[:] tgrid
-
-        double[:] fi
 
         double[:, :] A
         double[:, :] zeta
         double[:, :] I
 
     def __init__(self, int imax=100, int jmax=1000, double dt=0.01, double dx=1.,
-                double[:] v = None, double D=5., double s=1., double[:] fi=None):
+                double[:] v = None, double D=5., double s=1., double[:] fi_orig=None):
 
         self.imax = imax
         self.jmax = jmax
@@ -46,10 +46,10 @@ cdef class one_d_adr(object):
             self.v = v
         self.D =  D
         self.s = s
-        if fi is None:
-            self.fi = sp.stats.norm(loc=dx*jmax/2, scale=50*dx).pdf(self.xgrid)
+        if fi_orig is None:
+            self.fi_orig = sp.stats.norm(loc=dx*jmax/2, scale=50*dx).pdf(self.xgrid)
         else:
-            self.fi = fi
+            self.fi_orig = fi_orig
 
         self.setup_matrices()
 
@@ -83,26 +83,19 @@ cdef class one_d_adr(object):
         # Define the identity operator
         I = np.identity(self.jmax, dtype=np.double)
 
-    cdef double[:] G(self, double[:] f):
-        return self.s*f*(1-f)
+    cpdef run(self):
+        cdef float[:, :] sol_in_time = np.zeros((self.jmax, self.imax), dtype=np.double)
+        sol_in_time[:, 0] =  self.fi[:, 0]
 
+        fi = np.array([self.fi_orig]).T
 
+        cdef int i
+        for i in range(self.imax):
+            inv = np.linalg.inv(self.I - (self.dt/2.)*self.zeta)
+            propagation = (self.I + self.dt*self.A + (self.dt/2.)*self.zeta).dot(fi)
+            growth = self.dt*self.s*fi*(1-fi)
 
+            fi_plus_1 = inv.dot(propagation + growth)
+            sol_in_time[:, i] = fi_plus_1[:, 0]
 
-
-
-
-cpdef do_sim(int imax=100, int jmax=1000, double dt=0.01, double dx=1.,
-             double[:] v = None, double D=5., double s=1., double[:] fi=None):
-
-    if v is None:
-        v = 10.*np.ones(jmax, dtype=np.double)
-
-    cdef double[:]
-    if fi is None:
-        print 'waka'
-
-
-    # Define the advection operator
-
-
+            fi = fi_plus_1

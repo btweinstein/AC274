@@ -1,36 +1,12 @@
-#cython: boundscheck=False
-#cython: wraparound=False
-#cython: cdivision=True
-
 import numpy as np
-cimport numpy as np
-
 import scipy as sp
 
 # Setup the simulation
 
-cdef class one_d_adr(object):
+class one_d_adr(object):
 
-    cdef:
-        public int imax
-        public int jmax
-        public double dt
-        public double dx
-        public double[:] v
-        public double D
-        public double s
-
-        public double[:] fi_orig
-
-        double[:] xgrid
-        double[:] tgrid
-
-        double[:, :] A
-        double[:, :] zeta
-        double[:, :] I
-
-    def __init__(self, int imax=100, int jmax=1000, double dt=0.01, double dx=1.,
-                double[:] v = None, double D=5., double s=1., double[:] fi_orig=None):
+    def __init__(self, imax=100, jmax=1000, dt=0.01, dx=1.,
+                 v = None, D=5., s=1., fi_orig=None):
 
         self.imax = imax
         self.jmax = jmax
@@ -53,7 +29,7 @@ cdef class one_d_adr(object):
 
         self.setup_matrices()
 
-    cdef setup_matrices(self):
+    def setup_matrices(self):
         # Define the advection operator
 
         self.A = np.zeros((self.jmax, self.jmax), dtype=np.double)
@@ -83,13 +59,12 @@ cdef class one_d_adr(object):
         # Define the identity operator
         I = np.identity(self.jmax, dtype=np.double)
 
-    cpdef run(self):
-        cdef float[:, :] sol_in_time = np.zeros((self.jmax, self.imax), dtype=np.double)
-        sol_in_time[:, 0] =  self.fi[:, 0]
+    def run(self):
+        sol_in_time = np.zeros((self.jmax, self.imax), dtype=np.double)
+        sol_in_time[:, 0] =  self.fi_orig[:, 0]
 
         fi = np.array([self.fi_orig]).T
 
-        cdef int i
         for i in range(self.imax):
             inv = np.linalg.inv(self.I - (self.dt/2.)*self.zeta)
             propagation = (self.I + self.dt*self.A + (self.dt/2.)*self.zeta).dot(fi)
@@ -99,3 +74,5 @@ cdef class one_d_adr(object):
             sol_in_time[:, i] = fi_plus_1[:, 0]
 
             fi = fi_plus_1
+
+        return sol_in_time

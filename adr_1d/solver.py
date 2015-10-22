@@ -3,7 +3,7 @@ import scipy as sp
 
 # Setup the simulation
 
-class one_d_adr(object):
+class Solver(object):
 
     def __init__(self, imax=100, jmax=1000, dt=0.01, dx=1.,
                  v = None, D=5., s=1., fi_orig=None):
@@ -27,6 +27,10 @@ class one_d_adr(object):
         else:
             self.fi_orig = fi_orig
 
+
+        self.A = None
+        self.zeta = None
+        self.I = None
         self.setup_matrices()
 
     def setup_matrices(self):
@@ -38,9 +42,9 @@ class one_d_adr(object):
                 to_the_right = (c+1)%self.A.shape[1]
                 to_the_left = (c-1)%self.A.shape[1]
                 if r == to_the_right:
-                    self.A[r, c] = -self.v[r]/(2*self.dx)
+                    self.A[r, c] = self.v[r]/(2*self.dx)
                 elif r == to_the_left:
-                    self.A[r,c] = self.v[r]/(2*self.dx)
+                    self.A[r,c] = -self.v[r]/(2*self.dx)
 
         # Define the diffusion operator
 
@@ -57,11 +61,11 @@ class one_d_adr(object):
                     self.zeta[r, c] = -2*self.D/self.dx**2
 
         # Define the identity operator
-        I = np.identity(self.jmax, dtype=np.double)
+        self.I = np.identity(self.jmax, dtype=np.double)
 
     def run(self):
         sol_in_time = np.zeros((self.jmax, self.imax), dtype=np.double)
-        sol_in_time[:, 0] =  self.fi_orig[:, 0]
+        sol_in_time[:, 0] = self.fi_orig
 
         fi = np.array([self.fi_orig]).T
 

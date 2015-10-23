@@ -70,12 +70,14 @@ class Solver(object):
         fi = np.array([self.fi_orig]).T
 
         for i in range(self.imax):
-            inv = np.linalg.inv(self.I - (self.dt/2.)*self.zeta - (self.dt/2.)*self.A)
+            left_side = self.I - (self.dt/2.)*self.zeta - (self.dt/2.)*self.A
+
             propagation = (self.I + (self.dt/2.)*self.A + (self.dt/2.)*self.zeta).dot(fi)
             growth = self.dt*self.s*fi*(1-fi)
+            right_side = propagation + growth
 
-            fi_plus_1 = inv.dot(propagation + growth)
-            sol_in_time[:, i] = fi_plus_1[:, 0]
+            fi_plus_1 = sp.sparse.linalg.bicgstab(left_side, right_side, x0=fi, tol=10.**-6)[0]
+            sol_in_time[:, i] = fi_plus_1
 
             fi = fi_plus_1
 

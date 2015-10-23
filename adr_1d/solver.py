@@ -70,8 +70,8 @@ class Solver(object):
         fi = np.array([self.fi_orig]).T
 
         for i in range(self.imax):
-            inv = np.linalg.inv(self.I - (self.dt/2.)*self.zeta)
-            propagation = (self.I + self.dt*self.A + (self.dt/2.)*self.zeta).dot(fi)
+            inv = np.linalg.inv(self.I - (self.dt/2.)*self.zeta - (self.dt/2.)*self.A)
+            propagation = (self.I + (self.dt/2.)*self.A + (self.dt/2.)*self.zeta).dot(fi)
             growth = self.dt*self.s*fi*(1-fi)
 
             fi_plus_1 = inv.dot(propagation + growth)

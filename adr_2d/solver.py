@@ -1,5 +1,6 @@
 import numpy as np
 import scipy as sp
+from morton import zorder
 
 # Setup the simulation
 
@@ -57,6 +58,7 @@ class Solver(object):
 
     def get_logical_index_matrix(self):
         index_mat = np.arange(self.imax * self.jmax).reshape((self.imax, self.jmax))
+        zorder(index_mat)
         # We could do more complex things like morton ordering, but will keep it simple
         return index_mat
 

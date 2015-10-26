@@ -49,30 +49,34 @@ class Solver(object):
     def get_A(self):
         """Returns the advection operator"""
 
-        max_logical_index = self.get_logical_index(self.imax, self.jmax)
+        max_logical_index = self.get_logical_index(self.imax - 1, self.jmax)
 
         A = np.zeros((max_logical_index, max_logical_index), dtype=np.double) #TODO: Convert to sparse matrix!
-        for i in range(self.imax):
-            for j in range(self.jmax):
-                uij = self.u[self.get_logical_index(i, j)]
-                vij = self.v[self.get_logical_index(i, j)]
+        for r in range(max_logical_index):
+            i1, j1 = self.logical_to_ij(r)
+            for c in range(max_logical_index):
+                i2, j2 = self.logical_to_ij(c)
 
-                first_term = (uij/(2.*self.dr))*(self.logical_dd(i, j, i+1, j) - self.logical_dd(i, j, i-1, j))
-                print self.logical_dd(i, j, i+1, j)
-                second_term = (vij/(2*self.dr))*(self.logical_dd(i,j,i,j+1) - self.logical_dd(i,j,i,j-1))
-                #print (vij/(2*self.dr))
-                A[i, j] = first_term + second_term
+                uij = self.u[r]
+                vij = self.v[r]
+
+                first_term = (uij/(2.*self.dr))*(self.logical_dd(i1 + 1, j1, i2, j2) - self.logical_dd(i1 - 1, j1, i2, j2))
+                second_term = (vij/(2*self.dr))*(self.logical_dd(i1, j1+1,i2,j2) - self.logical_dd(i1,j1-1, i2, j2))
+                A[r, c] = first_term + second_term
 
         return A
 
-    def logical_dd(self, r, c, irow, jrow, icol, jcol):
+    def logical_dd(self, i1, j1, i2, j2):
         # A dirac delta that converts ij coordinates to logical index coordinates
-        desired_row = self.get_logical_index(irow, jrow)
-        desired_col = self.get_logical_index(icol, jcol)
-        if (r == desired_row) and (c == desired_col):
+        if (i1== i2) and (j1 == j2):
             return 1
         else:
             return 0
+
+    def logical_to_ij(self, logical):
+        i = logical / self.jmax
+        j = logical % self.jmax
+        return i, j
 
     def get_logical_index(self, i, j):
         return i*self.jmax + j

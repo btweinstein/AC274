@@ -46,16 +46,16 @@ class Solver(object):
         # Setup the logical indices
         self.logical_index_mat = self.get_logical_index_matrix()
         # Convert the logical indices into a matrix
-        self.to_logical_dict = {}
+        self.position_to_logical_dict = {}
         for i in range(self.logical_index_mat.shape[0]):
             for j in range(self.logical_index_mat.shape[1]):
-                self.to_logical_dict[i, j] = self.logical_index_mat[i, j]
+                self.position_to_logical_dict[i, j] = self.logical_index_mat[i, j]
         # Invert the list
-        self.to_position_dict = {v: k for k, v in self.to_logical_dict.items()}
+        self.logical_to_position_dict = {v: k for k, v in self.position_to_logical_dict.items()}
 
         self.A = self.get_A()
         self.zeta = self.get_zeta()
-        self.I = None
+        self.I = np.identity(self.logical_index_mat.max(), dtype=np.double)
         # self.setup_matrices()
 
     def get_logical_index_matrix(self):
@@ -72,9 +72,9 @@ class Solver(object):
 
         A = np.zeros((max_logical_index, max_logical_index), dtype=np.double) #TODO: Convert to sparse matrix!
         for r in range(max_logical_index):
-            i1, j1 = self.to_position_dict[r]
+            i1, j1 = self.logical_to_position_dict[r]
             for c in range(max_logical_index):
-                i2, j2 = self.to_position_dict[c]
+                i2, j2 = self.logical_to_position_dict[c]
 
                 uij = self.u[r]
                 vij = self.v[r]
@@ -94,9 +94,9 @@ class Solver(object):
 
         zeta = np.zeros((max_logical_index, max_logical_index), dtype=np.double) #TODO: Convert to sparse matrix!
         for r in range(max_logical_index):
-            i1, j1 = self.to_position_dict[r]
+            i1, j1 = self.logical_to_position_dict[r]
             for c in range(max_logical_index):
-                i2, j2 = self.to_position_dict[c]
+                i2, j2 = self.logical_to_position_dict[c]
 
                 first_term = self.dd(i1+1,j1+1, i2, j2) + \
                              self.dd(i1+1,j1-1, i2, j2) + \
@@ -118,63 +118,45 @@ class Solver(object):
         return zeta
 
     def dd_1d(self, i, j):
+        """Standrad dirac delta."""
         if i ==j:
             return 1
         return 0
 
     def dd(self, i1, j1, i2, j2):
-        # A dirac delta that makes sure i's and j's are the same.
+        """A dirac delta that makes sure i's and j's are the same."""
         if (i1== i2) and (j1 == j2):
             return 1
         else:
             return 0
 
-    # def setup_matrices(self):
-    #     # Define the advection operator
-    #
-    #     self.A = np.zeros((self.jmax, self.jmax), dtype=np.double)
-    #     for r in range(self.A.shape[0]):
-    #         for c in range(self.A.shape[1]):
-    #             to_the_right = (c+1)%self.A.shape[1]
-    #             to_the_left = (c-1)%self.A.shape[1]
-    #             if r == to_the_right:
-    #                 self.A[r, c] = self.v[r]/(2*self.dx)
-    #             elif r == to_the_left:
-    #                 self.A[r,c] = -self.v[r]/(2*self.dx)
-    #
-    #     # Define the diffusion operator
-    #
-    #     self.zeta = np.zeros((self.jmax, self.jmax), dtype=np.double)
-    #     for r in range(self.zeta.shape[0]):
-    #         for c in range(self.zeta.shape[1]):
-    #             to_the_right = (c+1)%self.zeta.shape[1]
-    #             to_the_left = (c-1)%self.zeta.shape[1]
-    #             if r == to_the_right:
-    #                 self.zeta[r, c] = self.D/self.dx**2
-    #             elif r == to_the_left:
-    #                 self.zeta[r,c] = self.D/self.dx**2
-    #             elif r == c:
-    #                 self.zeta[r, c] = -2*self.D/self.dx**2
-    #
-    #     # Define the identity operator
-    #     self.I = np.identity(self.jmax, dtype=np.double)
-    #
-    # def run(self):
-    #     sol_in_time = np.zeros((self.jmax, self.imax), dtype=np.double)
-    #     sol_in_time[:, 0] = self.fi_orig
-    #
-    #     fi = np.array([self.fi_orig]).T
-    #
-    #     for i in range(self.imax):
-    #         left_side = self.I - (self.dt/2.)*self.zeta - (self.dt/2.)*self.A
-    #
-    #         propagation = (self.I + (self.dt/2.)*self.A + (self.dt/2.)*self.zeta).dot(fi)
-    #         growth = self.dt*self.s*fi*(1-fi)
-    #         right_side = propagation + growth
-    #
-    #         fi_plus_1 = sp.sparse.linalg.bicgstab(left_side, right_side, x0=fi, tol=10.**-6)[0]
-    #         sol_in_time[:, i] = fi_plus_1
-    #
-    #         fi = fi_plus_1
-    #
-    #     return sol_in_time
+    def convert_fi_real_to_logical(self, fi):
+        desired_order = fi.ravel()[self.logical_index_mat.ravel()]
+        return np.array([desired_order], dtype=np.double).T
+
+    def convert_fi_logical_to_real(self, fi):
+        real_space = np.zeros((self.imax, self.jmax), dtype=np.double)
+        for i in range(fi.shape[0]):
+            real_space[self.logical_to_position_dict[i]] = fi[i]
+
+
+    def run(self):
+        sol_in_time = np.zeros((self.imax , self.jmax, self.kmax), dtype=np.double)
+        sol_in_time[:, :, 0] = self.fi_orig
+        # We need to convert the original solution to the new form.
+        fi = self.convert_fi_real_to_logical(self.fi_orig)
+
+        for i in range(self.imax):
+            left_side = self.I - (self.dt/2.)*self.zeta - (self.dt/2.)*self.A
+
+            propagation = (self.I + (self.dt/2.)*self.A + (self.dt/2.)*self.zeta).dot(fi)
+            growth = self.dt*self.s*fi*(1-fi)
+            right_side = propagation + growth
+
+            fi_plus_1 = sp.sparse.linalg.bicgstab(left_side, right_side, x0=fi, tol=10.**-6)[0]
+            # Now get the solution in space
+            sol_in_time[:, :, i] = self.convert_fi_logical_to_real(fi_plus_1)
+
+            fi = fi_plus_1
+
+        return sol_in_time

@@ -14,8 +14,8 @@ class Solver(object):
         self.dt = dt
         self.dr = dr
 
-        self.xgrid = dr*np.arange(imax)
-        self.ygrid = dr*np.arange(jmax)
+        self.rgrid = dr*np.arange(imax)
+        self.cgrid = dr*np.arange(jmax)
         self.tgrid = dt*np.arange(kmax)
 
         if v is None:
@@ -39,7 +39,29 @@ class Solver(object):
         self.A = None
         self.zeta = None
         self.I = None
-        self.setup_matrices()
+        # self.setup_matrices()
+
+    def get_A(self):
+        """Returns the advection operator"""
+
+        max_logical_index = self.get_logical_index(self.imax, self.jmax)
+
+        A = np.zeros((max_logical_index, max_logical_index), dtype=np.int) #TODO: Convert to sparse matrix!
+        for i in range(self.imax):
+            for j in range(self.jmax):
+
+
+    def logical_dd(self, i1, j1, i2, j2):
+        # A dirac delta that converts ij coordinates to logical index coordinates
+        log1 = self.get_logical_index(i1, j1)
+        log2 = self.get_logical_index(i2, j2)
+        if log1 == log2:
+            return 1
+        else:
+            return 0
+
+    def get_logical_index(self, i, j):
+        return i*self.jmax + j
 
     # def setup_matrices(self):
     #     # Define the advection operator

@@ -6,8 +6,8 @@ from morton import zorder
 
 class Solver(object):
 
-    def __init__(self, imax=10, jmax=10, kmax=20, dt=0.01, dr=1.0,
-                 u=None, v=None, D=5., s=1., fi_orig=None, use_morton=True):
+    def __init__(self, imax=10, jmax=10, kmax=20, dt=0.1, dr=1.0,
+                 u=None, v=None, D=1., s=0.3, fi_orig=None, use_morton=True):
 
         self.imax = imax
         self.jmax = jmax
@@ -22,11 +22,11 @@ class Solver(object):
         self.tgrid = dt*np.arange(kmax)
 
         if v is None:
-            self.v = 10.*np.ones((imax, jmax), dtype=np.double)
+            self.v = 1.*np.ones((imax, jmax), dtype=np.double)
         else:
             self.v = v
         if u is None:
-            self.u = 10.*np.ones((imax, jmax), dtype=np.double)
+            self.u = 1.*np.ones((imax, jmax), dtype=np.double)
         else:
             self.u = u
 

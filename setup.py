@@ -8,7 +8,7 @@ from Cython.Build import cythonize
 setup(
     name='AC274',
     version='0.01',
-    packages=['adr_1d'],
+    packages=['adr_1d', 'adr_2d'],
     url='',
     license='',
     author='',

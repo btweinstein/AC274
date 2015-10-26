@@ -160,3 +160,8 @@ class Solver(object):
             fi = fi_plus_1
 
         return sol_in_time
+
+if __name__=='__main__':
+    # Test script
+    sol = Solver(imax=10, jmax=10, use_morton=False)
+    sol.run()

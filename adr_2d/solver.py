@@ -55,7 +55,7 @@ class Solver(object):
 
         self.A = self.get_A()
         self.zeta = self.get_zeta()
-        self.I = np.identity(self.logical_index_mat.max(), dtype=np.double)
+        self.I = np.identity(self.logical_index_mat.max() + 1, dtype=np.double)
         # self.setup_matrices()
 
     def get_logical_index_matrix(self):
@@ -68,7 +68,7 @@ class Solver(object):
     def get_A(self):
         """Returns the advection operator"""
 
-        max_logical_index = self.logical_index_mat.max()
+        max_logical_index = self.logical_index_mat.max() + 1
 
         A = np.zeros((max_logical_index, max_logical_index), dtype=np.double) #TODO: Convert to sparse matrix!
         for r in range(max_logical_index):
@@ -86,7 +86,7 @@ class Solver(object):
         return A
 
     def get_zeta(self):
-        max_logical_index = self.logical_index_mat.max()
+        max_logical_index = self.logical_index_mat.max() + 1
 
         a_stencil = 4./36.
         b_stencil = 1./36.
@@ -138,6 +138,7 @@ class Solver(object):
         real_space = np.zeros((self.imax, self.jmax), dtype=np.double)
         for i in range(fi.shape[0]):
             real_space[self.logical_to_position_dict[i]] = fi[i]
+        return real_space
 
 
     def run(self):
@@ -146,7 +147,7 @@ class Solver(object):
         # We need to convert the original solution to the new form.
         fi = self.convert_fi_real_to_logical(self.fi_orig)
 
-        for i in range(self.imax):
+        for i in range(self.imax - 1):
             left_side = self.I - (self.dt/2.)*self.zeta - (self.dt/2.)*self.A
 
             propagation = (self.I + (self.dt/2.)*self.A + (self.dt/2.)*self.zeta).dot(fi)
@@ -154,8 +155,9 @@ class Solver(object):
             right_side = propagation + growth
 
             fi_plus_1 = sp.sparse.linalg.bicgstab(left_side, right_side, x0=fi, tol=10.**-6)[0]
+
             # Now get the solution in space
-            sol_in_time[:, :, i] = self.convert_fi_logical_to_real(fi_plus_1)
+            sol_in_time[:, :, i + 1] = self.convert_fi_logical_to_real(fi_plus_1)
 
             fi = fi_plus_1
 
@@ -164,4 +166,4 @@ class Solver(object):
 if __name__=='__main__':
     # Test script
     sol = Solver(imax=10, jmax=10, use_morton=False)
-    sol.run()
+    print sol.run()

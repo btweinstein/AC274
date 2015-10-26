@@ -131,8 +131,11 @@ class Solver(object):
             return 0
 
     def convert_fi_real_to_logical(self, fi):
-        desired_order = fi.ravel()[self.logical_index_mat.ravel()]
-        return np.array([desired_order], dtype=np.double).T
+        fi_logical = np.zeros((self.logical_index_mat.max() + 1, 1))
+        for i in range(fi.shape[0]):
+            for j in range(fi.shape[1]):
+                fi_logical[self.position_to_logical_dict[i, j], 0] = fi[i, j]
+        return fi_logical
 
     def convert_fi_logical_to_real(self, fi):
         real_space = np.zeros((self.imax, self.jmax), dtype=np.double)

@@ -7,13 +7,15 @@ from morton import zorder
 class Solver(object):
 
     def __init__(self, imax=10, jmax=10, kmax=20, dt=0.01, dr=1.0,
-                 u=None, v=None, D=5., s=1., fi_orig=None):
+                 u=None, v=None, D=5., s=1., fi_orig=None, use_morton=True):
 
         self.imax = imax
         self.jmax = jmax
         self.kmax = kmax
         self.dt = dt
         self.dr = dr
+
+        self.use_morton = use_morton
 
         self.rgrid = dr*np.arange(imax)
         self.cgrid = dr*np.arange(jmax)
@@ -52,13 +54,14 @@ class Solver(object):
         self.to_position_dict = {v: k for k, v in self.to_logical_dict.items()}
 
         self.A = self.get_A()
-        self.zeta = None
+        self.zeta = self.get_zeta()
         self.I = None
         # self.setup_matrices()
 
     def get_logical_index_matrix(self):
         index_mat = np.arange(self.imax * self.jmax).reshape((self.imax, self.jmax))
-        zorder(index_mat)
+        if self.use_morton:
+            zorder(index_mat)
         # We could do more complex things like morton ordering, but will keep it simple
         return index_mat
 
@@ -81,6 +84,43 @@ class Solver(object):
                 A[r, c] = first_term + second_term
 
         return A
+
+    def get_zeta(self):
+        max_logical_index = self.logical_index_mat.max()
+
+        a_stencil = 4./36.
+        b_stencil = 1./36.
+        c_stencil = -20./36. # Be careful, a, b, and c may appear in loops
+
+        zeta = np.zeros((max_logical_index, max_logical_index), dtype=np.double) #TODO: Convert to sparse matrix!
+        for r in range(max_logical_index):
+            i1, j1 = self.to_position_dict[r]
+            for c in range(max_logical_index):
+                i2, j2 = self.to_position_dict[c]
+
+                first_term = self.dd(i1+1,j1+1, i2, j2) + \
+                             self.dd(i1+1,j1-1, i2, j2) + \
+                             self.dd(i1-1, j1-1, i2, j2) + \
+                             self.dd(i1-1, j1+1, i2, j2)
+                first_term *= b_stencil
+
+                second_term = self.dd(i1, j1+1, i2, j2) + \
+                              self.dd(i1+1,j1,i2,j2) + \
+                              self.dd(i1,j1-1,i2,j2) + \
+                              self.dd(i1-1,j1,i2,j2)
+
+                second_term *= a_stencil
+
+                third_term = c_stencil*self.dd_1d(r, c)
+
+                zeta[r, c] = (self.D/self.dr**2)*(first_term + second_term + third_term)
+
+        return zeta
+
+    def dd_1d(self, i, j):
+        if i ==j:
+            return 1
+        return 0
 
     def dd(self, i1, j1, i2, j2):
         # A dirac delta that makes sure i's and j's are the same.

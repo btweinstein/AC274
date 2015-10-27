@@ -107,7 +107,7 @@ class Solver(object):
 
         cdef int max_logical_index = self.logical_index_mat.max() + 1
 
-        A = sp.sparse.lil_matrix((max_logical_index, max_logical_index), dtype=np.double)
+        cdef double[:, :] A = np.zeros((max_logical_index, max_logical_index), dtype=np.double)
         cdef int r, c
         cdef int i1, j1
         cdef int i2, j2
@@ -124,10 +124,12 @@ class Solver(object):
         cdef int imax = self.imax
         cdef int jmax = self.jmax
 
+        cdef dict logical_to_position_dict = self.logical_to_position_dict
+
         for r in range(max_logical_index):
-            i1, j1 = self.logical_to_position_dict[r]
+            i1, j1 = logical_to_position_dict[r]
             for c in range(max_logical_index):
-                i2, j2 = self.logical_to_position_dict[c]
+                i2, j2 = logical_to_position_dict[c]
 
                 uij = u[r]
                 vij = v[r]
@@ -153,7 +155,7 @@ class Solver(object):
         cdef double b_stencil = 1./36.
         cdef double c_stencil = -20./36. # Be careful, a, b, and c may appear in loops
 
-        zeta = sp.sparse.lil_matrix((max_logical_index, max_logical_index), dtype=np.double)
+        cdef double[:, :] zeta = np.zeros((max_logical_index, max_logical_index), dtype=np.double)
         cdef int r, c
         cdef int i1, j1, i2, j2
         cdef double first_term, second_term, third_term, result
@@ -166,10 +168,12 @@ class Solver(object):
 
         cdef int ip1, im1, jp1, jm1
 
+        cdef dict logical_to_position_dict = self.logical_to_position_dict
+
         for r in range(max_logical_index):
-            i1, j1 = self.logical_to_position_dict[r]
+            i1, j1 = logical_to_position_dict[r]
             for c in range(max_logical_index):
-                i2, j2 = self.logical_to_position_dict[c]
+                i2, j2 = logical_to_position_dict[c]
 
                 ip1 = (i1 + 1) % imax
                 im1 = (i1 - 1) % imax

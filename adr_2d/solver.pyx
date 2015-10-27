@@ -83,7 +83,7 @@ class Solver(object):
         print 'Creating initial gaussian condition...'
         if fi_orig is None:
             self.fi_orig = np.zeros((imax, jmax), dtype=np.double)
-            dist = sp.stats.multivariate_normal(mean=[self.imax/2, self.jmax/2], cov=[[self.imax/50,0],[0,self.imax/50]])
+            dist = sp.stats.multivariate_normal(mean=[self.imax/2, self.jmax/2], cov=[[self.imax/30,0],[0,self.imax/30]])
             for i in range(self.fi_orig.shape[0]):
                 for j in range(self.fi_orig.shape[1]):
                     self.fi_orig[i, j] = dist.pdf([i, j])
@@ -271,13 +271,15 @@ class Solver(object):
         # Convert fi to a sparse matrix
 
         for i in range(self.kmax):
+            if i % 50 == 0:
+                print 'Done with iteration', i
             left_side = self.I - (self.dt/2.)*self.zeta + (self.dt/2.)*self.A
 
             propagation = (self.I - (self.dt/2.)*self.A + (self.dt/2.)*self.zeta).dot(fi)
             growth = self.dt*self.s*fi*(1-fi)
             right_side = propagation + growth
 
-            fi_plus_1 = sp.sparse.linalg.bicgstab(left_side, right_side, x0=fi, tol=10.**-6)[0]
+            fi_plus_1 = sp.sparse.linalg.bicgstab(left_side, right_side, x0=fi, tol=10.**-1*TOLERANCE)[0]
 
             # Now get the solution in space
             sol_in_time[:, :, i+1] = self.convert_fi_logical_to_real(fi_plus_1)

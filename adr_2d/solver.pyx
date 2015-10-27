@@ -9,6 +9,7 @@ cimport numpy as np
 import scipy as sp
 from morton import zorder
 from libc.math cimport fabs
+from libc.stdlib cimport malloc, free
 
 # Setup the simulation
 
@@ -129,29 +130,50 @@ class Solver(object):
         cdef int imax = self.imax
         cdef int jmax = self.jmax
 
-        cdef dict logical_to_position_dict = self.logical_to_position_dict
+        cdef dict position_to_logical = self.position_to_logical_dict
 
-        for r in range(max_logical_index):
-            i1, j1 = logical_to_position_dict[r]
-            for c in range(max_logical_index):
-                i2, j2 = logical_to_position_dict[c]
+        cdef int[:] i_possible = np.zeros(3, dtype=np.intc)
+        cdef int[:] j_possible = np.zeros(3, dtype=np.intc)
 
-                uij = u[r]
-                vij = v[r]
+        cdef int i_count, j_count
 
-                # We must be careful here...mod's in c don't become positive which leads to bad things
+        # Loop over space...as the real matrix is *way* larger
+        for i1 in range(imax):
+            for j1 in range(jmax):
+                r = position_to_logical[i1, j1]
+                # Get neighbors
                 ip1 = c_pos_mod(i1 + 1, imax)
                 im1 = c_pos_mod(i1 - 1, imax)
                 jp1 = c_pos_mod(j1 + 1, jmax)
                 jm1 = c_pos_mod(j1 - 1, jmax)
 
-                first_term = (uij/(2.*dr))*(dd(ip1, j1, i2, j2) - dd(im1, j1, i2, j2))
-                second_term = (vij/(2.*dr))*(dd(i1, jp1,i2,j2) - dd(i1,jm1, i2, j2))
+                # Loop over all possible stencils
+                i_possible[0] = ip1
+                i_possible[1] = i1
+                i_possible[2] = im1
 
-                result = first_term + second_term
+                j_possible[0] = jp1
+                j_possible[1] = j1
+                j_possible[2] = jm1
 
-                if fabs(result) > TOLERANCE:
-                    A[r, c] = first_term + second_term
+                for i_count in range(3):
+                    for j_count in range(3):
+                        i2 = i_possible[i_count]
+                        j2 = j_possible[j_count]
+
+                        uij = u[r]
+                        vij = v[r]
+
+                        # We must be careful here...mod's in c don't become positive which leads to bad things
+
+                        first_term = (uij/(2.*dr))*(dd(ip1, j1, i2, j2) - dd(im1, j1, i2, j2))
+                        second_term = (vij/(2.*dr))*(dd(i1, jp1,i2,j2) - dd(i1,jm1, i2, j2))
+
+                        result = first_term + second_term
+
+                        if fabs(result) > TOLERANCE:
+                            c = position_to_logical[i2, j2]
+                            A[r, c] = first_term + second_term
         return sp.sparse.csc_matrix(A)
 
     def get_zeta(self):

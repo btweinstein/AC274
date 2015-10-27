@@ -5,7 +5,7 @@ from distutils.extension import Extension
 from Cython.Build import cythonize
 
 extensions = [
-    Extension('adr_2d/solver',
+    Extension('adr_2d.solver',
               sources=['adr_2d/solver.pyx'],
               language='c')
 ]

@@ -30,7 +30,7 @@ cdef int dd(int i1, int j1, int i2, int j2) nogil:
 
 class Solver(object):
 
-    def __init__(self, imax=10, jmax=10, kmax=20, dt=0.01, dr=1.0,
+    def __init__(self, imax=10, jmax=10, kmax=20, dt=0.001, dr=1.0,
                  u=None, v=None, D=5., s=0.8, fi_orig=None, use_morton=True):
 
         self.imax = imax
@@ -57,11 +57,11 @@ class Solver(object):
 
 
         if v is None: # v is right/left
-            self.v = 0.*np.ones((imax, jmax), dtype=np.double)
+            self.v = 5.*np.ones((imax, jmax), dtype=np.double)
         else:
             self.v = v # u is down/up
         if u is None: #
-            self.u = 10.*np.ones((imax, jmax), dtype=np.double)
+            self.u = 5.*np.ones((imax, jmax), dtype=np.double)
         else:
             self.u = u
 
@@ -140,7 +140,7 @@ class Solver(object):
                 jm1 = (j1 - 1) % jmax
 
                 first_term = (uij/(2.*dr))*(dd(ip1, j1, i2, j2) - dd(im1, j1, i2, j2))
-                second_term = (vij/(2*dr))*(dd(i1, jp1,i2,j2) - dd(i1,jm1, i2, j2))
+                second_term = (vij/(2.*dr))*(dd(i1, jp1,i2,j2) - dd(i1,jm1, i2, j2))
 
                 result = first_term + second_term
 

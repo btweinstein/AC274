@@ -9,7 +9,8 @@ cimport numpy as np
 import scipy as sp
 from morton import zorder
 from libc.math cimport fabs
-from libc.stdlib cimport malloc, free
+
+import skimage as ski
 
 # Setup the simulation
 
@@ -37,7 +38,7 @@ cdef long c_pos_mod(long num1, long num2) nogil:
 class Solver(object):
 
     def __init__(self, imax=10, jmax=10, kmax=20, dt=0.01, dr=1.0,
-                 u=None, v=None, D=10., s=0.8, fi_orig=None, use_morton=True):
+                 u=None, v=None, D=10., s=0.8, fi_orig=None, use_morton=False):
 
         self.imax = imax
         self.jmax = jmax
@@ -87,6 +88,7 @@ class Solver(object):
             for i in range(self.fi_orig.shape[0]):
                 for j in range(self.fi_orig.shape[1]):
                     self.fi_orig[i, j] = dist.pdf([i, j])
+            self.fi_orig = .1*self.fi_orig/self.fi_orig.max()
         else:
             self.fi_orig = fi_orig
         print 'Done!'
@@ -99,7 +101,6 @@ class Solver(object):
         print 'Done!'
 
         self.I = sp.sparse.eye(self.logical_index_mat.max() + 1, dtype=np.double, format='csr')
-        # self.setup_matrices()
 
     def get_logical_index_matrix(self):
         index_mat = np.arange(self.imax * self.jmax).reshape((self.imax, self.jmax))
@@ -203,7 +204,6 @@ class Solver(object):
 
         cdef int i_count, j_count
 
-
         for i1 in range(imax):
             for j1 in range(jmax):
                 r = position_to_logical[i1, j1]
@@ -263,7 +263,7 @@ class Solver(object):
         return real_space
 
 
-    def run(self):
+    def run(self, record_images=True):
         sol_in_time = np.zeros((self.imax, self.jmax, self.kmax + 1), dtype=np.double)
         sol_in_time[:, :, 0] = self.fi_orig
         # We need to convert the original solution to the new form.
@@ -273,6 +273,9 @@ class Solver(object):
         for i in range(self.kmax):
             if i % 50 == 0:
                 print 'Done with iteration', i
+                print 'Minimum (to check for stability):' , sol_in_time[:, :, i].min()
+                if record_images:
+                    ski.io.imsave('%05d'%i + str('.png'), sol_in_time[:, :, i])
             left_side = self.I - (self.dt/2.)*self.zeta + (self.dt/2.)*self.A
 
             propagation = (self.I - (self.dt/2.)*self.A + (self.dt/2.)*self.zeta).dot(fi)

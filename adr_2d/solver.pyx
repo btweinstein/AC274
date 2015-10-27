@@ -56,11 +56,11 @@ class Solver(object):
         self.logical_to_position_dict = {v: k for k, v in self.position_to_logical_dict.items()}
 
 
-        if v is None:
-            self.v = 10.*np.ones((imax, jmax), dtype=np.double)
+        if v is None: # v is right/left
+            self.v = 0.*np.ones((imax, jmax), dtype=np.double)
         else:
-            self.v = v
-        if u is None:
+            self.v = v # u is down/up
+        if u is None: #
             self.u = 10.*np.ones((imax, jmax), dtype=np.double)
         else:
             self.u = u

@@ -37,7 +37,7 @@ cdef long c_pos_mod(long num1, long num2) nogil:
 class Solver(object):
 
     def __init__(self, imax=10, jmax=10, kmax=20, dt=0.01, dr=1.0,
-                 u=None, v=None, D=10., s=0.3, fi_orig=None, use_morton=True):
+                 u=None, v=None, D=10., s=0.8, fi_orig=None, use_morton=True):
 
         self.imax = imax
         self.jmax = jmax
@@ -65,8 +65,8 @@ class Solver(object):
         if v is None: # v is right/left
             self.v = 50.*np.ones((imax, jmax), dtype=np.double)
         else:
-            self.v = v # u is down/up
-        if u is None: #
+            self.v = v
+        if u is None: # u is down/up
             self.u = 50.*np.ones((imax, jmax), dtype=np.double)
         else:
             self.u = u
@@ -83,7 +83,7 @@ class Solver(object):
         print 'Creating initial gaussian condition...'
         if fi_orig is None:
             self.fi_orig = np.zeros((imax, jmax), dtype=np.double)
-            dist = sp.stats.multivariate_normal(mean=[self.imax/2, self.jmax/2], cov=[[5,0],[0,5]])
+            dist = sp.stats.multivariate_normal(mean=[self.imax/2, self.jmax/2], cov=[[self.imax/50,0],[0,self.imax/50]])
             for i in range(self.fi_orig.shape[0]):
                 for j in range(self.fi_orig.shape[1]):
                     self.fi_orig[i, j] = dist.pdf([i, j])
@@ -277,7 +277,7 @@ class Solver(object):
             growth = self.dt*self.s*fi*(1-fi)
             right_side = propagation + growth
 
-            fi_plus_1 = sp.sparse.linalg.bicgstab(left_side, right_side, x0=fi, tol=10.**-9)[0]
+            fi_plus_1 = sp.sparse.linalg.bicgstab(left_side, right_side, x0=fi, tol=10.**-6)[0]
 
             # Now get the solution in space
             sol_in_time[:, :, i+1] = self.convert_fi_logical_to_real(fi_plus_1)

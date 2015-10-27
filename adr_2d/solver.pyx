@@ -124,10 +124,12 @@ class Solver(object):
         cdef int imax = self.imax
         cdef int jmax = self.jmax
 
+        cdef dict logical_to_position_dict = self.logical_to_position_dict
+
         for r in range(max_logical_index):
-            i1, j1 = self.logical_to_position_dict[r]
+            i1, j1 = logical_to_position_dict[r]
             for c in range(max_logical_index):
-                i2, j2 = self.logical_to_position_dict[c]
+                i2, j2 = logical_to_position_dict[c]
 
                 uij = u[r]
                 vij = v[r]
@@ -166,10 +168,12 @@ class Solver(object):
 
         cdef int ip1, im1, jp1, jm1
 
+        cdef dict logical_to_position_dict = self.logical_to_position_dict
+
         for r in range(max_logical_index):
-            i1, j1 = self.logical_to_position_dict[r]
+            i1, j1 = logical_to_position_dict[r]
             for c in range(max_logical_index):
-                i2, j2 = self.logical_to_position_dict[c]
+                i2, j2 = logical_to_position_dict[c]
 
                 ip1 = (i1 + 1) % imax
                 im1 = (i1 - 1) % imax

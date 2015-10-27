@@ -12,7 +12,7 @@ from libc.math cimport fabs
 
 # Setup the simulation
 
-cdef double TOLERANCE = 10.**-13
+cdef double TOLERANCE = 10.**-11
 
 cdef int dd_1d(int i, int j) nogil:
         """Standrad dirac delta."""
@@ -27,10 +27,15 @@ cdef int dd(int i1, int j1, int i2, int j2) nogil:
         else:
             return 0
 
+cdef long c_pos_mod(long num1, long num2) nogil:
+    if num1 < 0:
+        return num1 + num2
+    else:
+        return num1 % num2
 
 class Solver(object):
 
-    def __init__(self, imax=10, jmax=10, kmax=20, dt=0.001, dr=1.0,
+    def __init__(self, imax=10, jmax=10, kmax=20, dt=0.01, dr=1.0,
                  u=None, v=None, D=5., s=0.8, fi_orig=None, use_morton=True):
 
         self.imax = imax
@@ -134,10 +139,15 @@ class Solver(object):
                 uij = u[r]
                 vij = v[r]
 
-                ip1 = (i1 + 1) % imax
-                im1 = (i1 - 1) % imax
-                jp1 = (j1 + 1) % jmax
-                jm1 = (j1 - 1) % jmax
+                # We must be careful here...mod's in c don't become positive which leads to bad things
+                ip1 = c_pos_mod(i1 + 1, imax)
+                im1 = c_pos_mod(i1 - 1, imax)
+                if im1 < 0:
+                    print 'wakakakakakkaka'
+                jp1 = c_pos_mod(j1 + 1, jmax)
+                jm1 = c_pos_mod(j1 - 1, jmax)
+                if jm1 < 0:
+                    print 'wakakakkakakakka'
 
                 first_term = (uij/(2.*dr))*(dd(ip1, j1, i2, j2) - dd(im1, j1, i2, j2))
                 second_term = (vij/(2.*dr))*(dd(i1, jp1,i2,j2) - dd(i1,jm1, i2, j2))
@@ -175,10 +185,14 @@ class Solver(object):
             for c in range(max_logical_index):
                 i2, j2 = logical_to_position_dict[c]
 
-                ip1 = (i1 + 1) % imax
-                im1 = (i1 - 1) % imax
-                jp1 = (j1 + 1) % jmax
-                jm1 = (j1 - 1) % jmax
+                ip1 = c_pos_mod(i1 + 1, imax)
+                im1 = c_pos_mod(i1 - 1, imax)
+                if im1 < 0:
+                    print 'wakakakakakkaka'
+                jp1 = c_pos_mod(j1 + 1, jmax)
+                jm1 = c_pos_mod(j1 - 1, jmax)
+                if jm1 < 0:
+                    print 'wakakakkakakakka'
 
                 first_term = dd(ip1,jp1, i2, j2) + \
                              dd(ip1,jm1, i2, j2) + \

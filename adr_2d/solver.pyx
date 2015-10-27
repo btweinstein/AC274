@@ -110,21 +110,23 @@ class Solver(object):
         cdef int i1, j1
         cdef int i2, j2
 
-        cdef double[:] u
-        cdef double[:] v
+        cdef double[:] u = self.u
+        cdef double[:] v = self.v
         cdef double uij, vij
         cdef double first_term, second_term, result
+
+        cdef double dr = self.dr
 
         for r in range(max_logical_index):
             i1, j1 = self.logical_to_position_dict[r]
             for c in range(max_logical_index):
                 i2, j2 = self.logical_to_position_dict[c]
 
-                uij = self.u[r]
-                vij = self.v[r]
+                uij = u[r]
+                vij = v[r]
 
-                first_term = (uij/(2.*self.dr))*(dd(i1 + 1, j1, i2, j2) - dd(i1 - 1, j1, i2, j2))
-                second_term = (vij/(2*self.dr))*(dd(i1, j1+1,i2,j2) - dd(i1,j1-1, i2, j2))
+                first_term = (uij/(2.*dr))*(dd(i1 + 1, j1, i2, j2) - dd(i1 - 1, j1, i2, j2))
+                second_term = (vij/(2*dr))*(dd(i1, j1+1,i2,j2) - dd(i1,j1-1, i2, j2))
 
                 result = first_term + second_term
 
@@ -143,6 +145,10 @@ class Solver(object):
         cdef int r, c
         cdef int i1, j1, i2, j2
         cdef double first_term, second_term, third_term, result
+
+        cdef double D = self.D
+        cdef double dr = self.dr
+
         for r in range(max_logical_index):
             i1, j1 = self.logical_to_position_dict[r]
             for c in range(max_logical_index):
@@ -162,7 +168,7 @@ class Solver(object):
                 second_term *= a_stencil
                 third_term = c_stencil*dd_1d(r, c)
 
-                result = (self.D/self.dr**2)*(first_term + second_term + third_term)
+                result = (D/dr**2)*(first_term + second_term + third_term)
 
                 if fabs(result) > TOLERANCE:
                     zeta[r, c] = result

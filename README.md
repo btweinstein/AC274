@@ -20,3 +20,7 @@ in it for a given choice of parameters and and initial conditions and find somet
 ![Advection Diffusion in the flow](https://github.com/btweinstein/AC274/blob/master/examples/2d_advection_diffusion_in_flow.png)
 
 This is a nice looking solution, but don't trust it too much right now as my code appears to be unstable for the 2d case.
+
+See the below movie for the evolution of this plot. I played with a number of parameters but rather like the below movie.
+
+![Movie](https://github.com/btweinstein/AC274/blob/master/examples/smaller_s_and_D%20kept%20stack.avi)

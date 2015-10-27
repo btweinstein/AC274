@@ -119,6 +119,11 @@ class Solver(object):
 
         cdef double dr = self.dr
 
+        cdef int ip1, im1, jp1, jm1
+
+        cdef int imax = self.imax
+        cdef int jmax = self.jmax
+
         for r in range(max_logical_index):
             i1, j1 = self.logical_to_position_dict[r]
             for c in range(max_logical_index):
@@ -127,8 +132,13 @@ class Solver(object):
                 uij = u[r]
                 vij = v[r]
 
-                first_term = (uij/(2.*dr))*(dd(i1 + 1, j1, i2, j2) - dd(i1 - 1, j1, i2, j2))
-                second_term = (vij/(2*dr))*(dd(i1, j1+1,i2,j2) - dd(i1,j1-1, i2, j2))
+                ip1 = (i1 + 1) % imax
+                im1 = (i1 - 1) % imax
+                jp1 = (j1 + 1) % jmax
+                jm1 = (j1 - 1) % jmax
+
+                first_term = (uij/(2.*dr))*(dd(ip1, j1, i2, j2) - dd(im1, j1, i2, j2))
+                second_term = (vij/(2*dr))*(dd(i1, jp1,i2,j2) - dd(i1,jm1, i2, j2))
 
                 result = first_term + second_term
 
@@ -151,21 +161,31 @@ class Solver(object):
         cdef double D = self.D
         cdef double dr = self.dr
 
+        cdef int imax = self.imax
+        cdef int jmax = self.jmax
+
+        cdef int ip1, im1, jp1, jm1
+
         for r in range(max_logical_index):
             i1, j1 = self.logical_to_position_dict[r]
             for c in range(max_logical_index):
                 i2, j2 = self.logical_to_position_dict[c]
 
-                first_term = dd(i1+1,j1+1, i2, j2) + \
-                             dd(i1+1,j1-1, i2, j2) + \
-                             dd(i1-1, j1-1, i2, j2) + \
-                             dd(i1-1, j1+1, i2, j2)
+                ip1 = (i1 + 1) % imax
+                im1 = (i1 - 1) % imax
+                jp1 = (j1 + 1) % jmax
+                jm1 = (j1 - 1) % jmax
+
+                first_term = dd(ip1,jp1, i2, j2) + \
+                             dd(ip1,jm1, i2, j2) + \
+                             dd(im1, jm1, i2, j2) + \
+                             dd(im1, jp1, i2, j2)
                 first_term *= b_stencil
 
-                second_term = dd(i1, j1+1, i2, j2) + \
-                              dd(i1+1, j1,i2,j2) + \
-                              dd(i1, j1-1,i2,j2) + \
-                              dd(i1-1, j1,i2,j2)
+                second_term = dd(i1, jp1, i2, j2) + \
+                              dd(ip1, j1,i2,j2) + \
+                              dd(i1, jm1,i2,j2) + \
+                              dd(im1, j1,i2,j2)
 
                 second_term *= a_stencil
                 third_term = c_stencil*dd_1d(r, c)

@@ -50,16 +50,24 @@ class Solver(object):
 
         self.D =  D
         self.s = s
+        print 'Creating initial gaussian condition...'
         if fi_orig is None:
             self.fi_orig = np.zeros((imax, jmax), dtype=np.double)
-            self.fi_orig[imax/2, jmax/2] = 0.1
+            dist = sp.stats.multivariate_normal(mean=[self.imax/2, self.jmax/2], cov=[[5,0],[0,5]])
+            for i in range(self.fi_orig.shape[0]):
+                for j in range(self.fi_orig.shape[1]):
+                    self.fi_orig[i, j] = dist.pdf([i, j])
         else:
             self.fi_orig = fi_orig
+        print 'Done!'
 
+        print 'Creating advection operator...'
         self.A = self.get_A()
-        print 'Created advection operator!'
+        print 'Done!'
+        print 'Creating diffusion operator...'
         self.zeta = self.get_zeta()
-        print 'Created diffusion operator!'
+        print 'Done!'
+
         self.I = sp.sparse.eye(self.logical_index_mat.max() + 1, dtype=np.double, format='csr')
         # self.setup_matrices()
 
@@ -113,9 +121,9 @@ class Solver(object):
                 first_term *= b_stencil
 
                 second_term = self.dd(i1, j1+1, i2, j2) + \
-                              self.dd(i1+1,j1,i2,j2) + \
-                              self.dd(i1,j1-1,i2,j2) + \
-                              self.dd(i1-1,j1,i2,j2)
+                              self.dd(i1+1, j1,i2,j2) + \
+                              self.dd(i1, j1-1,i2,j2) + \
+                              self.dd(i1-1, j1,i2,j2)
 
                 second_term *= a_stencil
                 third_term = c_stencil*self.dd_1d(r, c)

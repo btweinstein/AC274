@@ -4,6 +4,8 @@ from morton import zorder
 
 # Setup the simulation
 
+TOLERANCE = 10.**-9
+
 class Solver(object):
 
     def __init__(self, imax=10, jmax=10, kmax=20, dt=0.1, dr=1.0,
@@ -21,28 +23,6 @@ class Solver(object):
         self.cgrid = dr*np.arange(jmax)
         self.tgrid = dt*np.arange(kmax)
 
-        if v is None:
-            self.v = 1.*np.ones((imax, jmax), dtype=np.double)
-        else:
-            self.v = v
-        if u is None:
-            self.u = 1.*np.ones((imax, jmax), dtype=np.double)
-        else:
-            self.u = u
-
-        # Now convert u and v to logical indices! We are using a simple technique to do this; it could be time
-        # consuming to do this in general for an arbitrary index
-        self.v = self.v.ravel() # In c order automatically, which matches our logical indexing
-        self.u = self.u.ravel()
-
-        self.D =  D
-        self.s = s
-        if fi_orig is None:
-            self.fi_orig = np.zeros((imax, jmax), dtype=np.double)
-            self.fi_orig[imax/2, jmax/2] = 0.1
-        else:
-            self.fi_orig = fi_orig
-
         # Setup the logical indices
         self.logical_index_mat = self.get_logical_index_matrix()
         # Convert the logical indices into a matrix
@@ -53,9 +33,34 @@ class Solver(object):
         # Invert the list
         self.logical_to_position_dict = {v: k for k, v in self.position_to_logical_dict.items()}
 
+
+        if v is None:
+            self.v = 1.*np.ones((imax, jmax), dtype=np.double)
+        else:
+            self.v = v
+        if u is None:
+            self.u = 0.*np.ones((imax, jmax), dtype=np.double)
+        else:
+            self.u = u
+
+        # Now convert u and v to logical indices! We are using a simple technique to do this; it could be time
+        # consuming to do this in general for an arbitrary index
+        self.v = self.convert_fi_real_to_logical(self.v)
+        self.u = self.convert_fi_real_to_logical(self.u)
+
+        self.D =  D
+        self.s = s
+        if fi_orig is None:
+            self.fi_orig = np.zeros((imax, jmax), dtype=np.double)
+            self.fi_orig[imax/2, jmax/2] = 0.1
+        else:
+            self.fi_orig = fi_orig
+
         self.A = self.get_A()
+        print 'Created advection operator!'
         self.zeta = self.get_zeta()
-        self.I = np.identity(self.logical_index_mat.max() + 1, dtype=np.double)
+        print 'Created diffusion operator!'
+        self.I = sp.sparse.eye(self.logical_index_mat.max() + 1, dtype=np.double, format='csr')
         # self.setup_matrices()
 
     def get_logical_index_matrix(self):
@@ -70,7 +75,7 @@ class Solver(object):
 
         max_logical_index = self.logical_index_mat.max() + 1
 
-        A = np.zeros((max_logical_index, max_logical_index), dtype=np.double) #TODO: Convert to sparse matrix!
+        A = sp.sparse.lil_matrix((max_logical_index, max_logical_index), dtype=np.double)
         for r in range(max_logical_index):
             i1, j1 = self.logical_to_position_dict[r]
             for c in range(max_logical_index):
@@ -81,9 +86,12 @@ class Solver(object):
 
                 first_term = (uij/(2.*self.dr))*(self.dd(i1 + 1, j1, i2, j2) - self.dd(i1 - 1, j1, i2, j2))
                 second_term = (vij/(2*self.dr))*(self.dd(i1, j1+1,i2,j2) - self.dd(i1,j1-1, i2, j2))
-                A[r, c] = first_term + second_term
 
-        return A
+                result = first_term + second_term
+
+                if np.abs(result) > TOLERANCE:
+                    A[r, c] = first_term + second_term
+        return sp.sparse.csc_matrix(A)
 
     def get_zeta(self):
         max_logical_index = self.logical_index_mat.max() + 1
@@ -92,7 +100,7 @@ class Solver(object):
         b_stencil = 1./36.
         c_stencil = -20./36. # Be careful, a, b, and c may appear in loops
 
-        zeta = np.zeros((max_logical_index, max_logical_index), dtype=np.double) #TODO: Convert to sparse matrix!
+        zeta = sp.sparse.lil_matrix((max_logical_index, max_logical_index), dtype=np.double)
         for r in range(max_logical_index):
             i1, j1 = self.logical_to_position_dict[r]
             for c in range(max_logical_index):
@@ -110,12 +118,14 @@ class Solver(object):
                               self.dd(i1-1,j1,i2,j2)
 
                 second_term *= a_stencil
-
                 third_term = c_stencil*self.dd_1d(r, c)
 
-                zeta[r, c] = (self.D/self.dr**2)*(first_term + second_term + third_term)
+                result = (self.D/self.dr**2)*(first_term + second_term + third_term)
 
-        return zeta
+                if np.abs(result) > TOLERANCE:
+                    zeta[r, c] = result
+
+        return sp.sparse.csc_matrix(zeta)
 
     def dd_1d(self, i, j):
         """Standrad dirac delta."""
@@ -145,12 +155,13 @@ class Solver(object):
 
 
     def run(self):
-        sol_in_time = np.zeros((self.imax , self.jmax, self.kmax), dtype=np.double)
+        sol_in_time = np.zeros((self.imax, self.jmax, self.kmax + 1), dtype=np.double)
         sol_in_time[:, :, 0] = self.fi_orig
         # We need to convert the original solution to the new form.
         fi = self.convert_fi_real_to_logical(self.fi_orig)
+        # Convert fi to a sparse matrix
 
-        for i in range(self.imax - 1):
+        for i in range(self.kmax - 1):
             left_side = self.I - (self.dt/2.)*self.zeta - (self.dt/2.)*self.A
 
             propagation = (self.I + (self.dt/2.)*self.A + (self.dt/2.)*self.zeta).dot(fi)
@@ -160,7 +171,7 @@ class Solver(object):
             fi_plus_1 = sp.sparse.linalg.bicgstab(left_side, right_side, x0=fi, tol=10.**-6)[0]
 
             # Now get the solution in space
-            sol_in_time[:, :, i + 1] = self.convert_fi_logical_to_real(fi_plus_1)
+            sol_in_time[:, :, i+1] = self.convert_fi_logical_to_real(fi_plus_1)
 
             fi = fi_plus_1
 

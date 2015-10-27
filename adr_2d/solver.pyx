@@ -130,22 +130,24 @@ class Solver(object):
             i1, j1 = logical_to_position_dict[r]
             for c in range(max_logical_index):
                 i2, j2 = logical_to_position_dict[c]
+                # Elements are at most 1 apart, so we can skip a lot of computation if i1 and i2 are not
+                if (fabs(i1 - i2) <= 1) and (fabs(j1-j2) <= 1):
 
-                uij = u[r]
-                vij = v[r]
+                    uij = u[r]
+                    vij = v[r]
 
-                ip1 = (i1 + 1) % imax
-                im1 = (i1 - 1) % imax
-                jp1 = (j1 + 1) % jmax
-                jm1 = (j1 - 1) % jmax
+                    ip1 = (i1 + 1) % imax
+                    im1 = (i1 - 1) % imax
+                    jp1 = (j1 + 1) % jmax
+                    jm1 = (j1 - 1) % jmax
 
-                first_term = (uij/(2.*dr))*(dd(ip1, j1, i2, j2) - dd(im1, j1, i2, j2))
-                second_term = (vij/(2*dr))*(dd(i1, jp1,i2,j2) - dd(i1,jm1, i2, j2))
+                    first_term = (uij/(2.*dr))*(dd(ip1, j1, i2, j2) - dd(im1, j1, i2, j2))
+                    second_term = (vij/(2*dr))*(dd(i1, jp1,i2,j2) - dd(i1,jm1, i2, j2))
 
-                result = first_term + second_term
+                    result = first_term + second_term
 
-                if fabs(result) > TOLERANCE:
-                    A[r, c] = first_term + second_term
+                    if fabs(result) > TOLERANCE:
+                        A[r, c] = first_term + second_term
         return sp.sparse.csc_matrix(A)
 
     def get_zeta(self):
@@ -175,29 +177,31 @@ class Solver(object):
             for c in range(max_logical_index):
                 i2, j2 = logical_to_position_dict[c]
 
-                ip1 = (i1 + 1) % imax
-                im1 = (i1 - 1) % imax
-                jp1 = (j1 + 1) % jmax
-                jm1 = (j1 - 1) % jmax
+                if (fabs(i1 - i2) <= 1) and (fabs(j1-j2) <= 1):
 
-                first_term = dd(ip1,jp1, i2, j2) + \
-                             dd(ip1,jm1, i2, j2) + \
-                             dd(im1, jm1, i2, j2) + \
-                             dd(im1, jp1, i2, j2)
-                first_term *= b_stencil
+                    ip1 = (i1 + 1) % imax
+                    im1 = (i1 - 1) % imax
+                    jp1 = (j1 + 1) % jmax
+                    jm1 = (j1 - 1) % jmax
 
-                second_term = dd(i1, jp1, i2, j2) + \
-                              dd(ip1, j1,i2,j2) + \
-                              dd(i1, jm1,i2,j2) + \
-                              dd(im1, j1,i2,j2)
+                    first_term = dd(ip1,jp1, i2, j2) + \
+                                 dd(ip1,jm1, i2, j2) + \
+                                 dd(im1, jm1, i2, j2) + \
+                                 dd(im1, jp1, i2, j2)
+                    first_term *= b_stencil
 
-                second_term *= a_stencil
-                third_term = c_stencil*dd_1d(r, c)
+                    second_term = dd(i1, jp1, i2, j2) + \
+                                  dd(ip1, j1,i2,j2) + \
+                                  dd(i1, jm1,i2,j2) + \
+                                  dd(im1, j1,i2,j2)
 
-                result = (D/dr**2)*(first_term + second_term + third_term)
+                    second_term *= a_stencil
+                    third_term = c_stencil*dd_1d(r, c)
 
-                if fabs(result) > TOLERANCE:
-                    zeta[r, c] = result
+                    result = (D/dr**2)*(first_term + second_term + third_term)
+
+                    if fabs(result) > TOLERANCE:
+                        zeta[r, c] = result
 
         return sp.sparse.csc_matrix(zeta)
 

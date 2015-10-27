@@ -36,7 +36,7 @@ cdef long c_pos_mod(long num1, long num2) nogil:
 class Solver(object):
 
     def __init__(self, imax=10, jmax=10, kmax=20, dt=0.01, dr=1.0,
-                 u=None, v=None, D=5., s=0.8, fi_orig=None, use_morton=True):
+                 u=None, v=None, D=2., s=0.8, fi_orig=None, use_morton=True):
 
         self.imax = imax
         self.jmax = jmax
@@ -142,12 +142,8 @@ class Solver(object):
                 # We must be careful here...mod's in c don't become positive which leads to bad things
                 ip1 = c_pos_mod(i1 + 1, imax)
                 im1 = c_pos_mod(i1 - 1, imax)
-                if im1 < 0:
-                    print 'wakakakakakkaka'
                 jp1 = c_pos_mod(j1 + 1, jmax)
                 jm1 = c_pos_mod(j1 - 1, jmax)
-                if jm1 < 0:
-                    print 'wakakakkakakakka'
 
                 first_term = (uij/(2.*dr))*(dd(ip1, j1, i2, j2) - dd(im1, j1, i2, j2))
                 second_term = (vij/(2.*dr))*(dd(i1, jp1,i2,j2) - dd(i1,jm1, i2, j2))
@@ -187,12 +183,8 @@ class Solver(object):
 
                 ip1 = c_pos_mod(i1 + 1, imax)
                 im1 = c_pos_mod(i1 - 1, imax)
-                if im1 < 0:
-                    print 'wakakakakakkaka'
                 jp1 = c_pos_mod(j1 + 1, jmax)
                 jm1 = c_pos_mod(j1 - 1, jmax)
-                if jm1 < 0:
-                    print 'wakakakkakakakka'
 
                 first_term = dd(ip1,jp1, i2, j2) + \
                              dd(ip1,jm1, i2, j2) + \

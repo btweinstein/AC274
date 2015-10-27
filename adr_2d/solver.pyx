@@ -68,7 +68,9 @@ class Solver(object):
         # Now convert u and v to logical indices! We are using a simple technique to do this; it could be time
         # consuming to do this in general for an arbitrary index
         self.v = self.convert_fi_real_to_logical(self.v)
+        self.v = self.v[:, 0] # Convert to a 1d list, don't need the vector
         self.u = self.convert_fi_real_to_logical(self.u)
+        self.u = self.u[:, 0]
 
         self.D =  D
         self.s = s

@@ -23,4 +23,4 @@ This is a nice looking solution, but don't trust it too much right now as my cod
 
 See the below movie for the evolution of this plot. I played with a number of parameters but rather like the below movie.
 
-[Movie](https://github.com/btweinstein/AC274/blob/master/examples/smaller_s_and_D%20kept%20stack.avi Movie)
+[Movie](https://github.com/btweinstein/AC274/blob/master/examples/smaller_s_and_D%20kept%20stack.avi "Movie")

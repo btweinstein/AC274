@@ -36,7 +36,7 @@ cdef long c_pos_mod(long num1, long num2) nogil:
 
 class Solver(object):
 
-    def __init__(self, imax=10, jmax=10, kmax=20, dt=0.1, dr=1.0,
+    def __init__(self, imax=10, jmax=10, kmax=20, dt=0.01, dr=1.0,
                  u=None, v=None, D=10., s=0.3, fi_orig=None, use_morton=True):
 
         self.imax = imax
@@ -157,8 +157,8 @@ class Solver(object):
                 j_possible[2] = jm1
 
                 for i_count in range(3):
+                    i2 = i_possible[i_count]
                     for j_count in range(3):
-                        i2 = i_possible[i_count]
                         j2 = j_possible[j_count]
 
                         uij = u[r]
@@ -223,8 +223,8 @@ class Solver(object):
                 j_possible[2] = jm1
 
                 for i_count in range(3):
+                    i2 = i_possible[i_count]
                     for j_count in range(3):
-                        i2 = i_possible[i_count]
                         j2 = j_possible[j_count]
 
                         first_term = dd(ip1,jp1, i2, j2) + \
@@ -239,11 +239,12 @@ class Solver(object):
                                       dd(im1, j1,i2,j2)
 
                         second_term *= a_stencil
-                        third_term = c_stencil*dd_1d(r, c)
+                        third_term = c_stencil*dd(i1, j1, i2, j2) # They have to be the same
 
                         result = (D/dr**2)*(first_term + second_term + third_term)
 
                         if fabs(result) > TOLERANCE:
+                            c = position_to_logical[i2, j2]
                             zeta[r, c] = result
 
         return sp.sparse.csc_matrix(zeta)

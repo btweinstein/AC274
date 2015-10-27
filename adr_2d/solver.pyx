@@ -30,8 +30,8 @@ cdef int dd(int i1, int j1, int i2, int j2) nogil:
 
 class Solver(object):
 
-    def __init__(self, imax=10, jmax=10, kmax=20, dt=0.005, dr=1.0,
-                 u=None, v=None, D=1., s=0.8, fi_orig=None, use_morton=True):
+    def __init__(self, imax=10, jmax=10, kmax=20, dt=0.01, dr=1.0,
+                 u=None, v=None, D=5., s=0.8, fi_orig=None, use_morton=True):
 
         self.imax = imax
         self.jmax = jmax
@@ -218,7 +218,7 @@ class Solver(object):
         fi = self.convert_fi_real_to_logical(self.fi_orig)
         # Convert fi to a sparse matrix
 
-        for i in range(self.kmax - 1):
+        for i in range(self.kmax):
             left_side = self.I - (self.dt/2.)*self.zeta - (self.dt/2.)*self.A
 
             propagation = (self.I + (self.dt/2.)*self.A + (self.dt/2.)*self.zeta).dot(fi)

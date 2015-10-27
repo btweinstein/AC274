@@ -12,7 +12,7 @@ from libc.math cimport fabs
 
 # Setup the simulation
 
-cdef double TOLERANCE = 10.**-9
+cdef double TOLERANCE = 10.**-13
 
 cdef int dd_1d(int i, int j) nogil:
         """Standrad dirac delta."""
@@ -57,11 +57,11 @@ class Solver(object):
 
 
         if v is None:
-            self.v = 5.*np.ones((imax, jmax), dtype=np.double)
+            self.v = 10.*np.ones((imax, jmax), dtype=np.double)
         else:
             self.v = v
         if u is None:
-            self.u = 5.*np.ones((imax, jmax), dtype=np.double)
+            self.u = 10.*np.ones((imax, jmax), dtype=np.double)
         else:
             self.u = u
 
@@ -130,24 +130,22 @@ class Solver(object):
             i1, j1 = logical_to_position_dict[r]
             for c in range(max_logical_index):
                 i2, j2 = logical_to_position_dict[c]
-                # Elements are at most 1 apart, so we can skip a lot of computation if i1 and i2 are not
-                if (fabs(i1 - i2) <= 1) and (fabs(j1-j2) <= 1):
 
-                    uij = u[r]
-                    vij = v[r]
+                uij = u[r]
+                vij = v[r]
 
-                    ip1 = (i1 + 1) % imax
-                    im1 = (i1 - 1) % imax
-                    jp1 = (j1 + 1) % jmax
-                    jm1 = (j1 - 1) % jmax
+                ip1 = (i1 + 1) % imax
+                im1 = (i1 - 1) % imax
+                jp1 = (j1 + 1) % jmax
+                jm1 = (j1 - 1) % jmax
 
-                    first_term = (uij/(2.*dr))*(dd(ip1, j1, i2, j2) - dd(im1, j1, i2, j2))
-                    second_term = (vij/(2*dr))*(dd(i1, jp1,i2,j2) - dd(i1,jm1, i2, j2))
+                first_term = (uij/(2.*dr))*(dd(ip1, j1, i2, j2) - dd(im1, j1, i2, j2))
+                second_term = (vij/(2*dr))*(dd(i1, jp1,i2,j2) - dd(i1,jm1, i2, j2))
 
-                    result = first_term + second_term
+                result = first_term + second_term
 
-                    if fabs(result) > TOLERANCE:
-                        A[r, c] = first_term + second_term
+                if fabs(result) > TOLERANCE:
+                    A[r, c] = first_term + second_term
         return sp.sparse.csc_matrix(A)
 
     def get_zeta(self):
@@ -177,31 +175,29 @@ class Solver(object):
             for c in range(max_logical_index):
                 i2, j2 = logical_to_position_dict[c]
 
-                if (fabs(i1 - i2) <= 1) and (fabs(j1-j2) <= 1):
+                ip1 = (i1 + 1) % imax
+                im1 = (i1 - 1) % imax
+                jp1 = (j1 + 1) % jmax
+                jm1 = (j1 - 1) % jmax
 
-                    ip1 = (i1 + 1) % imax
-                    im1 = (i1 - 1) % imax
-                    jp1 = (j1 + 1) % jmax
-                    jm1 = (j1 - 1) % jmax
+                first_term = dd(ip1,jp1, i2, j2) + \
+                             dd(ip1,jm1, i2, j2) + \
+                             dd(im1, jm1, i2, j2) + \
+                             dd(im1, jp1, i2, j2)
+                first_term *= b_stencil
 
-                    first_term = dd(ip1,jp1, i2, j2) + \
-                                 dd(ip1,jm1, i2, j2) + \
-                                 dd(im1, jm1, i2, j2) + \
-                                 dd(im1, jp1, i2, j2)
-                    first_term *= b_stencil
+                second_term = dd(i1, jp1, i2, j2) + \
+                              dd(ip1, j1,i2,j2) + \
+                              dd(i1, jm1,i2,j2) + \
+                              dd(im1, j1,i2,j2)
 
-                    second_term = dd(i1, jp1, i2, j2) + \
-                                  dd(ip1, j1,i2,j2) + \
-                                  dd(i1, jm1,i2,j2) + \
-                                  dd(im1, j1,i2,j2)
+                second_term *= a_stencil
+                third_term = c_stencil*dd_1d(r, c)
 
-                    second_term *= a_stencil
-                    third_term = c_stencil*dd_1d(r, c)
+                result = (D/dr**2)*(first_term + second_term + third_term)
 
-                    result = (D/dr**2)*(first_term + second_term + third_term)
-
-                    if fabs(result) > TOLERANCE:
-                        zeta[r, c] = result
+                if fabs(result) > TOLERANCE:
+                    zeta[r, c] = result
 
         return sp.sparse.csc_matrix(zeta)
 
@@ -227,9 +223,9 @@ class Solver(object):
         # Convert fi to a sparse matrix
 
         for i in range(self.kmax):
-            left_side = self.I - (self.dt/2.)*self.zeta - (self.dt/2.)*self.A
+            left_side = self.I - (self.dt/2.)*self.zeta + (self.dt/2.)*self.A
 
-            propagation = (self.I + (self.dt/2.)*self.A + (self.dt/2.)*self.zeta).dot(fi)
+            propagation = (self.I - (self.dt/2.)*self.A + (self.dt/2.)*self.zeta).dot(fi)
             growth = self.dt*self.s*fi*(1-fi)
             right_side = propagation + growth
 

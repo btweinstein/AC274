@@ -37,7 +37,7 @@ cdef long c_pos_mod(long num1, long num2) nogil:
 class Solver(object):
 
     def __init__(self, imax=10, jmax=10, kmax=20, dt=0.1, dr=1.0,
-                 u=None, v=None, D=10., s=0.8, fi_orig=None, use_morton=True):
+                 u=None, v=None, D=10., s=0.3, fi_orig=None, use_morton=True):
 
         self.imax = imax
         self.jmax = jmax

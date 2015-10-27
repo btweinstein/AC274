@@ -12,7 +12,7 @@ from libc.math cimport fabs
 
 # Setup the simulation
 
-cdef double TOLERANCE = 10.**-9
+cdef double TOLERANCE = 10.**-13
 
 cdef int dd_1d(int i, int j) nogil:
         """Standrad dirac delta."""
@@ -56,12 +56,12 @@ class Solver(object):
         self.logical_to_position_dict = {v: k for k, v in self.position_to_logical_dict.items()}
 
 
-        if v is None:
-            self.v = 5.*np.ones((imax, jmax), dtype=np.double)
+        if v is None: # v is right/left
+            self.v = 0.*np.ones((imax, jmax), dtype=np.double)
         else:
-            self.v = v
-        if u is None:
-            self.u = 5.*np.ones((imax, jmax), dtype=np.double)
+            self.v = v # u is down/up
+        if u is None: #
+            self.u = 10.*np.ones((imax, jmax), dtype=np.double)
         else:
             self.u = u
 
@@ -124,10 +124,12 @@ class Solver(object):
         cdef int imax = self.imax
         cdef int jmax = self.jmax
 
+        cdef dict logical_to_position_dict = self.logical_to_position_dict
+
         for r in range(max_logical_index):
-            i1, j1 = self.logical_to_position_dict[r]
+            i1, j1 = logical_to_position_dict[r]
             for c in range(max_logical_index):
-                i2, j2 = self.logical_to_position_dict[c]
+                i2, j2 = logical_to_position_dict[c]
 
                 uij = u[r]
                 vij = v[r]
@@ -166,10 +168,12 @@ class Solver(object):
 
         cdef int ip1, im1, jp1, jm1
 
+        cdef dict logical_to_position_dict = self.logical_to_position_dict
+
         for r in range(max_logical_index):
-            i1, j1 = self.logical_to_position_dict[r]
+            i1, j1 = logical_to_position_dict[r]
             for c in range(max_logical_index):
-                i2, j2 = self.logical_to_position_dict[c]
+                i2, j2 = logical_to_position_dict[c]
 
                 ip1 = (i1 + 1) % imax
                 im1 = (i1 - 1) % imax
@@ -219,9 +223,9 @@ class Solver(object):
         # Convert fi to a sparse matrix
 
         for i in range(self.kmax):
-            left_side = self.I - (self.dt/2.)*self.zeta - (self.dt/2.)*self.A
+            left_side = self.I - (self.dt/2.)*self.zeta + (self.dt/2.)*self.A
 
-            propagation = (self.I + (self.dt/2.)*self.A + (self.dt/2.)*self.zeta).dot(fi)
+            propagation = (self.I - (self.dt/2.)*self.A + (self.dt/2.)*self.zeta).dot(fi)
             growth = self.dt*self.s*fi*(1-fi)
             right_side = propagation + growth
 

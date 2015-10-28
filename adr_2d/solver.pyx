@@ -283,9 +283,7 @@ class Solver(object):
             propagation = (propagator).dot(fi)
             growth = self.dt*self.s*fi*(1-fi)
             right_side = propagation + growth
-            print 'About to solve...'
-            fi_plus_1 = sp.sparse.linalg.bicg(left_side, right_side, xo=fi)
-            print 'Done!'
+            fi_plus_1 = sp.sparse.linalg.cgs(left_side, right_side)[0]
             # Now get the solution in space
             sol_in_time[:, :, i+1] = self.convert_fi_logical_to_real(fi_plus_1)
 

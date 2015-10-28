@@ -1,4 +1,4 @@
-#cython: boundscheck=False
+#cython: boundscheck=True
 #cython: wraparound=False
 #cython: initializedcheck=False
 #cython: nonecheck=False
@@ -7,10 +7,10 @@
 import numpy as np
 cimport numpy as np
 import scipy as sp
-from morton import zorder
 from libc.math cimport fabs
-
 import skimage as ski
+
+from morpy import morton
 
 # Setup the simulation
 
@@ -38,7 +38,7 @@ cdef long c_pos_mod(long num1, long num2) nogil:
 class Solver(object):
 
     def __init__(self, imax=10, jmax=10, kmax=20, dt=0.01, dr=1.0,
-                 u=None, v=None, D=10., s=0.8, fi_orig=None, use_morton=False):
+                 u=None, v=None, D=10., s=0.8, fi_orig=None, use_morton=False, covX=None, covY = None):
 
         self.imax = imax
         self.jmax = jmax
@@ -84,7 +84,11 @@ class Solver(object):
         print 'Creating initial gaussian condition...'
         if fi_orig is None:
             self.fi_orig = np.zeros((imax, jmax), dtype=np.double)
-            dist = sp.stats.multivariate_normal(mean=[self.imax/2, self.jmax/2], cov=[[self.imax/30,0],[0,self.imax/30]])
+            if covX is None:
+                covX = self.imax/30
+            if covY is None:
+                covY = self.jmax/30
+            dist = sp.stats.multivariate_normal(mean=[self.imax/2, self.jmax/2], cov=[[covX,0],[0,covY]])
             for i in range(self.fi_orig.shape[0]):
                 for j in range(self.fi_orig.shape[1]):
                     self.fi_orig[i, j] = dist.pdf([i, j])
@@ -103,11 +107,21 @@ class Solver(object):
         self.I = sp.sparse.eye(self.logical_index_mat.max() + 1, dtype=np.double, format='csc')
 
     def get_logical_index_matrix(self):
-        index_mat = np.arange(self.imax * self.jmax).reshape((self.imax, self.jmax))
+
+        index = np.arange(self.imax * self.jmax)
         if self.use_morton:
-            zorder(index_mat)
+            converter = morton.MortonLib(ndim=2)
+            morton_value = np.zeros((self.imax*self.jmax), dtype=np.int64)
+            count = 0
+            for i in range(self.imax):
+                for j in range(self.jmax):
+                    morton_value[count] = converter.ijk_to_morton([i, j])
+                    count += 1
+            assert(len(np.unique(morton_value)) == self.imax*self.jmax) # Make sure every element has a morton value
+            morton_order = np.argsort(morton_value)
+            index = index[morton_order]
         # We could do more complex things like morton ordering, but will keep it simple
-        return index_mat
+        return index.reshape((self.imax, self.jmax))
 
     def get_A(self):
         """Returns the advection operator"""

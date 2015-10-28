@@ -1,4 +1,4 @@
-#cython: boundscheck=True
+#cython: boundscheck=False
 #cython: wraparound=False
 #cython: initializedcheck=False
 #cython: nonecheck=False
@@ -10,6 +10,8 @@ import scipy as sp
 from libc.math cimport fabs
 import skimage as ski
 import zorder
+import seaborn as sns
+import matplotlib.pyplot as plt
 
 # Setup the simulation
 
@@ -285,12 +287,18 @@ class Solver(object):
         left_side = self.I - (self.dt/2.)*self.zeta + (self.dt/2.)*self.A
         propagator = self.I + (self.dt/2.)*self.zeta - (self.dt/2.)*self.A
 
+        colormap = sns.cubehelix_palette(n_colors=1024, as_cmap=True)
+
         for i in range(self.kmax):
             if i % 50 == 0:
                 print 'Done with iteration', i
                 print 'Minimum (to check for stability):' , sol_in_time[:, :, i].min()
                 if record_images:
-                    ski.io.imsave('%05d'%i + str('.png'), sol_in_time[:, :, i])
+                    ski.io.imshow(sol_in_time[:, :, i], cmap=colormap)
+                    plt.grid(False)
+                    plt.clim([0, 1])
+                    plt.savefig('%05d'%i + str('.png'), dpi=200, bbox_inches='tight')
+                    plt.clf()
 
             propagation = (propagator).dot(fi)
             growth = self.dt*self.s*fi*(1-fi)

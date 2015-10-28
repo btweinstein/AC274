@@ -100,7 +100,7 @@ class Solver(object):
         self.zeta = self.get_zeta()
         print 'Done!'
 
-        self.I = sp.sparse.eye(self.logical_index_mat.max() + 1, dtype=np.double, format='csr')
+        self.I = sp.sparse.eye(self.logical_index_mat.max() + 1, dtype=np.double, format='csc')
 
     def get_logical_index_matrix(self):
         index_mat = np.arange(self.imax * self.jmax).reshape((self.imax, self.jmax))
@@ -270,15 +270,18 @@ class Solver(object):
         fi = self.convert_fi_real_to_logical(self.fi_orig)
         # Convert fi to a sparse matrix
 
+        # The left side is constant in time
+        left_side = self.I - (self.dt/2.)*self.zeta + (self.dt/2.)*self.A
+        propagator = self.I + (self.dt/2.)*self.zeta - (self.dt/2.)*self.A
+
         for i in range(self.kmax):
             if i % 50 == 0:
                 print 'Done with iteration', i
                 print 'Minimum (to check for stability):' , sol_in_time[:, :, i].min()
                 if record_images:
                     ski.io.imsave('%05d'%i + str('.png'), sol_in_time[:, :, i])
-            left_side = self.I - (self.dt/2.)*self.zeta + (self.dt/2.)*self.A
 
-            propagation = (self.I - (self.dt/2.)*self.A + (self.dt/2.)*self.zeta).dot(fi)
+            propagation = (propagator).dot(fi)
             growth = self.dt*self.s*fi*(1-fi)
             right_side = propagation + growth
 

@@ -143,6 +143,8 @@ class Solver(object):
 
         cdef int i_count, j_count
 
+        cdef float uip1, uim1, vjp1, vjm1
+
         # Loop over space...as the real matrix is *way* larger
         for i1 in range(imax):
             for j1 in range(jmax):
@@ -162,18 +164,22 @@ class Solver(object):
                 j_possible[1] = j1
                 j_possible[2] = jm1
 
+
+
+                uip1 = u[position_to_logical[ip1, j1]]
+                uim1 = u[position_to_logical[im1, j1]]
+                vjp1 = v[position_to_logical[i1, jp1]]
+                vjm1 = v[position_to_logical[i1, jm1]]
+
                 for i_count in range(3):
                     i2 = i_possible[i_count]
                     for j_count in range(3):
                         j2 = j_possible[j_count]
 
-                        uij = u[r]
-                        vij = v[r]
-
                         # We must be careful here...mod's in c don't become positive which leads to bad things
 
-                        first_term = (uij/(2.*dr))*(dd(ip1, j1, i2, j2) - dd(im1, j1, i2, j2))
-                        second_term = (vij/(2.*dr))*(dd(i1, jp1,i2,j2) - dd(i1,jm1, i2, j2))
+                        first_term = 1./(2.*dr)*(uip1*dd(ip1, j1, i2, j2) - uim1*dd(im1, j1, i2, j2))
+                        second_term = 1./(2.*dr)*(vjp1*dd(i1, jp1,i2,j2) - vjm1*dd(i1,jm1, i2, j2))
 
                         result = first_term + second_term
 

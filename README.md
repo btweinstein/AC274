@@ -8,7 +8,8 @@ Exercises for Sauro Succi's computational fluid dynamics course at harvard.
 
 ## 2d Advection-Diffusion Reaction (ADR) Solver
 
-Note that although the code seems to work for short times, it appears to become unstable at long times. If anyone is able to diagnose the source of the problem, let me know!
+Note that although the code seems to work for short times, it appears to somewhat unstable. If you have a better
+way of doing this with finite difference, let me konw!
 
 ![2d adr flow field](https://github.com/btweinstein/AC274/blob/master/examples/2d_example_flow.png)
 We create a flow field. How does an advection-reaction-diffusion system propagate through this? We solve
@@ -19,7 +20,7 @@ in it for a given choice of parameters and and initial conditions and find somet
 
 ![Advection Diffusion in the flow](https://github.com/btweinstein/AC274/blob/master/examples/2d_advection_diffusion_in_flow.png)
 
-This is a nice looking solution, but don't trust it too much right now as my code appears to be unstable for the 2d case.
+The solution looks like what we would expect intuitively.
 
 See the below movie for the evolution of this plot. I played with a number of parameters but rather like the below movie.
 

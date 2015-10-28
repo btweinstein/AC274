@@ -268,7 +268,9 @@ class Solver(object):
         sol_in_time[:, :, 0] = self.fi_orig
         # We need to convert the original solution to the new form.
         fi = self.convert_fi_real_to_logical(self.fi_orig)
-        # Convert fi to a sparse matrix
+
+        # The left side is constant in time
+        left_side = self.I - (self.dt/2.)*self.zeta + (self.dt/2.)*self.A
 
         for i in range(self.kmax):
             if i % 50 == 0:
@@ -276,7 +278,7 @@ class Solver(object):
                 print 'Minimum (to check for stability):' , sol_in_time[:, :, i].min()
                 if record_images:
                     ski.io.imsave('%05d'%i + str('.png'), sol_in_time[:, :, i])
-            left_side = self.I - (self.dt/2.)*self.zeta + (self.dt/2.)*self.A
+
 
             propagation = (self.I - (self.dt/2.)*self.A + (self.dt/2.)*self.zeta).dot(fi)
             growth = self.dt*self.s*fi*(1-fi)

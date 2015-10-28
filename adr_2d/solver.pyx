@@ -100,7 +100,7 @@ class Solver(object):
         self.zeta = self.get_zeta()
         print 'Done!'
 
-        self.I = sp.sparse.eye(self.logical_index_mat.max() + 1, dtype=np.double, format='csr')
+        self.I = sp.sparse.eye(self.logical_index_mat.max() + 1, dtype=np.double, format='csc')
 
     def get_logical_index_matrix(self):
         index_mat = np.arange(self.imax * self.jmax).reshape((self.imax, self.jmax))
@@ -271,6 +271,7 @@ class Solver(object):
 
         # The left side is constant in time
         left_side = self.I - (self.dt/2.)*self.zeta + (self.dt/2.)*self.A
+        propagator = self.I + (self.dt/2.)*self.zeta - (self.dt/2.)*self.A
 
         for i in range(self.kmax):
             if i % 50 == 0:
@@ -279,13 +280,12 @@ class Solver(object):
                 if record_images:
                     ski.io.imsave('%05d'%i + str('.png'), sol_in_time[:, :, i])
 
-
-            propagation = (self.I - (self.dt/2.)*self.A + (self.dt/2.)*self.zeta).dot(fi)
+            propagation = (propagator).dot(fi)
             growth = self.dt*self.s*fi*(1-fi)
             right_side = propagation + growth
-
-            fi_plus_1 = sp.sparse.linalg.bicgstab(left_side, right_side, x0=fi, tol=10.**-1*TOLERANCE)[0]
-
+            print 'About to solve...'
+            fi_plus_1 = sp.sparse.linalg.bicg(left_side, right_side, xo=fi)
+            print 'Done!'
             # Now get the solution in space
             sol_in_time[:, :, i+1] = self.convert_fi_logical_to_real(fi_plus_1)
 

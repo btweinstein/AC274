@@ -9,8 +9,7 @@ cimport numpy as np
 import scipy as sp
 from libc.math cimport fabs
 import skimage as ski
-
-from morpy import morton
+import zorder
 
 # Setup the simulation
 
@@ -108,20 +107,12 @@ class Solver(object):
 
     def get_logical_index_matrix(self):
 
-        index = np.arange(self.imax * self.jmax)
+        index_mat = np.arange(self.imax * self.jmax).reshape((self.imax, self.jmax))
         if self.use_morton:
-            converter = morton.MortonLib(ndim=2)
-            morton_value = np.zeros((self.imax*self.jmax), dtype=np.int64)
-            count = 0
-            for i in range(self.imax):
-                for j in range(self.jmax):
-                    morton_value[count] = converter.ijk_to_morton([i, j])
-                    count += 1
-            assert(len(np.unique(morton_value)) == self.imax*self.jmax) # Make sure every element has a morton value
-            morton_order = np.argsort(morton_value)
-            index = index[morton_order]
+            zorder.zorder(index_mat)
+        assert np.unique(index_mat).shape[0] == self.imax*self.jmax # Ensure that the indexing does not remove elements...
         # We could do more complex things like morton ordering, but will keep it simple
-        return index.reshape((self.imax, self.jmax))
+        return index_mat
 
     def get_A(self):
         """Returns the advection operator"""
